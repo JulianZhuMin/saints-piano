@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>聖者進行曲 When the Saints Go Marching In</title>
+<style>
+body{margin:0;font-family:system-ui,"PingFang HK",sans-serif;background:#fff7e0;color:#222;text-align:center}
+h1{font-size:1.6em;margin:.5em}
+#score{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:8px;font-size:1.6em;font-weight:bold}
+#score span{min-width:1.4em;padding:2px 4px;border-radius:8px}
+#score span.bar{min-width:.4em;color:#aaa}
+#score span.on{background:#ff5a5f;color:#fff}
+#play{font-size:2em;padding:.5em 1.5em;border-radius:40px;border:none;background:#2e9e4f;color:#fff;margin:10px}
+#play.stop{background:#d33}
+#kbwrap{position:relative;margin:70px auto 20px;width:min(96vw,900px);height:240px}
+.w{position:absolute;top:0;height:220px;background:#fff;border:2px solid #333;border-radius:0 0 10px 10px;box-sizing:border-box}
+.w.on{background:#ffd23f;transform:translateY(4px)}
+.b{position:absolute;top:0;height:135px;background:#222;border-radius:0 0 6px 6px;z-index:2}
+.lab{position:absolute;bottom:8px;width:100%;font-size:22px;font-weight:bold;color:#555}
+.lab small{display:block;font-size:13px}
+#hand{position:absolute;top:-70px;font-size:64px;transition:left .12s,top .08s;z-index:5;pointer-events:none}
+#big{position:absolute;top:-62px;font-size:40px;font-weight:bold;color:#ff5a5f;z-index:4}
+</style></head><body>
+<h1>聖者進行曲<br><small>When the Saints Go Marching In</small></h1>
+<button id="play" aria-label="播放 聖者進行曲">▶ 播放</button>
+<div id="score" aria-hidden="true"></div>
+<div id="kbwrap" aria-hidden="true"><div id="big"></div><div id="hand">👇</div></div>
+<p>C大調・只用白鍵 · v1</p>
+<script>
+// [jianpu degree(1-7), octave(0 / 1 high), beats]; 0 = rest
+const M=[[0,0,1],[1,0,1],[3,0,1],[4,0,1],[5,0,4],'|',[0,0,1],[1,0,1],[3,0,1],[4,0,1],[5,0,4],'|',
+[0,0,1],[1,0,1],[3,0,1],[4,0,1],[5,0,2],[3,0,2],[1,0,2],[3,0,2],[2,0,4],'|',
+[0,0,1],[3,0,1],[3,0,1],[2,0,1],[1,0,3],[1,0,1],[3,0,2],[5,0,2],[5,0,1],[4,0,3],'|',
+[0,0,1],[3,0,1],[4,0,1],[5,0,2],[3,0,2],[1,0,2],[2,0,2],[1,0,4]];
+const BEAT=0.5, SEMI={1:0,2:2,3:4,4:5,5:7,6:9,7:11};
+// keyboard C4..G5 white keys
+const whites=[];for(let o=0;o<2;o++)for(let d=1;d<=7;d++){if(o==1&&d>5)break;whites.push([d,o]);}
+const wrap=document.getElementById('kbwrap'),W=100/whites.length,keys={};
+whites.forEach(([d,o],i)=>{const k=document.createElement('div');k.className='w';k.style.left=i*W+'%';k.style.width=W+'%';
+k.innerHTML='<div class="lab">'+d+(o?'̇':'')+'<small>'+'CDEFGAB'[d-1]+'</small></div>';wrap.appendChild(k);keys[d+'_'+o]=k;
+if(![3,7].includes(d)&&i<whites.length-1){const b=document.createElement('div');b.className='b';b.style.left=(i+1)*W-W*0.3+'%';b.style.width=W*0.6+'%';wrap.appendChild(b);}});
+const sc=document.getElementById('score'),spans=[];
+M.forEach(n=>{const s=document.createElement('span');if(n=='|'){s.className='bar';s.textContent='|';}
+else if(n[0]==0){s.textContent='0';s.style.color='#bbb';}else{s.textContent=n[0]+(n[2]>=2?' -'.repeat(n[2]-1):'');}
+sc.appendChild(s);spans.push(s);});
+let ctx,timers=[],playing=false;const btn=document.getElementById('play'),hand=document.getElementById('hand'),big=document.getElementById('big');
+function tone(f,t,dur){const g=ctx.createGain();g.connect(ctx.destination);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.35,t+.01);
+g.gain.exponentialRampToValueAtTime(.12,t+.3);g.gain.setTargetAtTime(.0001,t+dur,.08);
+[[1,1],[2,.4],[3,.2],[4,.1]].forEach(([h,a])=>{const o=ctx.createOscillator(),og=ctx.createGain();o.type='sine';o.frequency.value=f*h;og.gain.value=a;o.connect(og);og.connect(g);o.start(t);o.stop(t+dur+.6);});}
+function stop(){timers.forEach(clearTimeout);timers=[];playing=false;btn.textContent='▶ 播放';btn.classList.remove('stop');btn.setAttribute('aria-label','播放 聖者進行曲');
+document.querySelectorAll('.on').forEach(e=>e.classList.remove('on'));big.textContent='';}
+function play(){ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();ctx.resume();playing=true;btn.textContent='■ 停止';btn.classList.add('stop');btn.setAttribute('aria-label','停止');
+let t=0.3;const t0=ctx.currentTime;
+M.forEach((n,i)=>{if(n=='|')return;const dur=n[2]*BEAT;
+if(n[0]){const f=261.63*Math.pow(2,(SEMI[n[0]]+12*n[1])/12);tone(f,t0+t,dur*0.92);const k=keys[n[0]+'_'+n[1]];
+timers.push(setTimeout(()=>{k.classList.add('on');spans[i].classList.add('on');const r=k.offsetLeft+k.offsetWidth/2;hand.style.left=(r-32)+'px';big.style.left=(r-12)+'px';big.textContent=n[0];},t*1000));
+timers.push(setTimeout(()=>{k.classList.remove('on');spans[i].classList.remove('on');},(t+dur*0.92)*1000));}
+t+=dur;});timers.push(setTimeout(stop,(t+0.8)*1000));}
+btn.onclick=()=>playing?stop():play();
+</script></body></html>
